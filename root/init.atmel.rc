@@ -1,0 +1,69 @@
+on early-init
+# copy /system/initlogo.rle to /initlogo.rle because android will delete /initlogo.rle when you reboot
+  copy /system/initlogo.rle /initlogo.rle
+  
+on init
+# The DPI settings for our display (default 160)
+		setprop ro.sf.lcd_density 120
+
+# Change the vm heap size (default 16m)
+		setprop dalvik.vm.heapsize 32m
+
+on post-fs
+# For wifi
+  mkdir /data/misc/wifi/sockets 0777 wifi wifi
+# For dhcp
+	mkdir /data/misc/dhcp wifi wifi
+	chmod 0777 /data/misc/dhcp
+# wi-fi
+# Define service for dhcp
+service dhcpcd_owl0 /system/bin/dhcpcd -ABKL -f /system/etc/android.conf
+    disabled
+    oneshot
+ 
+service dhcpcd_eth0 /system/bin/dhcpcd -ABKL -f /system/etc/android.conf
+    disabled
+    oneshot
+
+# IP Renew
+# wi-fi
+service iprenew_owl0 /system/bin/dhcpcd -n
+    disabled
+    oneshot
+
+# IP Renew
+# Ethernet
+service iprenew_eth0 /system/bin/dhcpcd -n
+    disabled
+    oneshot
+on boot
+# Define for Backlight,let Android have the permission to access linux sysfs of backlight
+   chmod 0777 /sys/class/backlight/backlight/brightness
+   chown system system /sys/class/backlight/backlight/brightness
+   
+# For memalloc & decoder
+    chmod 0777 /dev/memalloc
+    chmod 0777 /dev/hx170
+
+# For wifi
+   setprop wifi.interface owl0
+    setprop camera.hardware.preview.width 480
+    setprop camera.hardware.preview.height 272   
+# Make Calibrate App have the permisson to access linux kernel parameters
+    chown system system /sys/module/atmel_tsadcc/parameters/calibrated
+	chown system system /sys/module/atmel_tsadcc/parameters/tx1
+	chown system system /sys/module/atmel_tsadcc/parameters/ty1
+	chown system system /sys/module/atmel_tsadcc/parameters/tz1
+	chown system system /sys/module/atmel_tsadcc/parameters/tx2
+	chown system system /sys/module/atmel_tsadcc/parameters/ty2
+	chown system system /sys/module/atmel_tsadcc/parameters/tz2
+	chown system system /sys/module/atmel_tsadcc/parameters/ts
+
+service wpa_supplicant /system/bin/wpa_supplicant -Dwext -iowl0 -c/data/misc/wifi/wpa_supplicant.conf
+#   we will start as root and wpa_supplicant will switch to user wifi
+#   after setting up the capabilities required for WEXT
+#   user wifi
+#   group wifi inet keystore
+    socket wpa_owl0 dgram 0660 wifi wifi
+    disabled
+    oneshot
